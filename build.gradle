@@ -14,9 +14,25 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    toolchain {
+        // velocity-api 4.x ships Java 25 bytecode, so javac needs to be JDK 25+
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // emit Java 21 bytecode that runs on any Java 21+ runtime
+    options.release = 21
+}
+
+// velocity-api 4.x declares jvm.version=25 in its Gradle module metadata,
+// so dependency resolution needs to request JVM version 25 to match,
+// even though we emit Java 21 bytecode above
+def requestJvm25 = {
+    it.attributes { it.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+}
+[configurations.compileClasspath, configurations.annotationProcessor].each(requestJvm25)
 
 dependencies {
     compileOnly "com.velocitypowered:velocity-api:${project.velocity_api_version}"
